@@ -15,7 +15,7 @@ import org.bimserver.plugins.serializers.IfcModelInterface;
 
 public class BimServerTagMerger {	
 	
-	public void merge(Tagger tagger, IfcModelInterface model) {
+	public void merge(Tagger tagger, IfcModelInterface model, String languageCode) {
 				
 		// Find classification
 		
@@ -31,13 +31,13 @@ public class BimServerTagMerger {
 		if (classification == null) {
 			classification = Ifc2x3Factory.eINSTANCE.createIfcClassification();
 			classification.setSource("http://ifd-library.org");
-			classification.setEdition("nb-NO");
+			classification.setEdition(languageCode);
 			classification.setName("IFD Library");
 			model.add(classification);
 		}		
 		
 		for (IfcRoot root : model.getAllWithSubTypes(IfcRoot.class)) {
-			List<Tag> tags = tagger.getAllTags(Arrays.asList(root.getGlobalId().getWrappedValue()), "no");
+			List<Tag> tags = tagger.getAllTags(Arrays.asList(root.getGlobalId().getWrappedValue()), languageCode);
 			for (Tag tag : tags) {
 				
 				// Find classification reference
