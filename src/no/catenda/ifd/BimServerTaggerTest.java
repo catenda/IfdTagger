@@ -2,33 +2,53 @@ package no.catenda.ifd;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.bimserver.client.BimServerClient;
 import org.bimserver.client.ConnectionException;
 import org.bimserver.client.factories.UsernamePasswordAuthenticationInfo;
+import org.bimserver.interfaces.objects.SProject;
+import org.bimserver.plugins.PluginException;
 import org.bimserver.plugins.PluginManager;
+import org.bimserver.plugins.deserializers.DeserializeException;
+import org.bimserver.shared.ServiceInterface;
+import org.bimserver.shared.exceptions.ServerException;
+import org.bimserver.shared.exceptions.UserException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class BimServerTaggerTest {
 
 	private Tagger tagger;
+	private ServiceInterface serviceInterface;
+	private SProject project;
 	
 	@Before
-	public void setUp() throws ConnectionException {
+	public void setUp() throws ConnectionException, ServerException, UserException, DeserializeException, IOException, PluginException {
 		UsernamePasswordAuthenticationInfo authenticationInfo = new UsernamePasswordAuthenticationInfo("admin@bimserver.org", "admin");
 		PluginManager pluginManager = new PluginManager();
 		pluginManager.loadPluginsFromCurrentClassloader();
-		BimServerClient bimServerClient = new BimServerClient(pluginManager);
-		bimServerClient.setAuthentication(authenticationInfo);
-		bimServerClient.connectProtocolBuffers("localhost", 8020);
-		tagger = new BimServerTagger(bimServerClient);
+		BimServerClient client = new BimServerClient(pluginManager);
+		client.setAuthentication(authenticationInfo);
+		client.connectProtocolBuffers("localhost", 8020);
+
+		serviceInterface = client.getServiceInterface();
+		project = serviceInterface.addProject(UUID.randomUUID().toString());
+
+		tagger = new Tagger(new BimServerTagStore(project, serviceInterface, pluginManager));
+	}
+	
+	@After
+	public void tearDown() throws ServerException, UserException {
+		serviceInterface.deleteProject(project.getOid());
 	}
 	
 	@Test
-	public void testSetTag() {
+	public void testSetTag() throws TagStoreCommitException {
 		Tag tag = new Tag("1Co3yK0000A34oE3WnEJ8o", "Example name", "en");
 		tagger.setTag(Arrays.asList(new String[] { "3vHRQ8oT0Hsm00051Mm008" }), tag);
 		List<Tag> tags = tagger.getAllTags(Arrays.asList(new String[] { "3vHRQ8oT0Hsm00051Mm008" }), "en");
@@ -39,7 +59,7 @@ public class BimServerTaggerTest {
 	}
 	
 	@Test
-	public void testSetTagUpdate() {
+	public void testSetTagUpdate() throws TagStoreCommitException {
 		Tag originalTag = new Tag("1Co3yK0000A34oE3WnEJ8o", "Original name", "en");
 		tagger.setTag(Arrays.asList(new String[] { "3vHRQ8oT0Hsm00051Mm008" }), originalTag);
 		List<Tag> originalTags = tagger.getAllTags(Arrays.asList(new String[] { "3vHRQ8oT0Hsm00051Mm008" }), "en");
@@ -58,7 +78,7 @@ public class BimServerTaggerTest {
 	}
 	
 	@Test
-	public void testDeleteTag() {
+	public void testDeleteTag() throws TagStoreCommitException {
 		Tag tag = new Tag("1Co3yK0000A34oE3WnEJ8o", "Example name", "en");
 		tagger.setTag(Arrays.asList(new String[] { "3vHRQ8oT0Hsm00051Mm008" }), tag);
 		List<Tag> tags = tagger.getAllTags(Arrays.asList(new String[] { "3vHRQ8oT0Hsm00051Mm008" }), "en");
