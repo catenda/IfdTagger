@@ -1,1 +1,1 @@
-BIMserver.org plugin for tagging IFC object with IFD Library ID's
+Library for tagging IFC objects with IFD classification. Supports BIMserver as storage backend.
